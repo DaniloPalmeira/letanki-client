@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<application xmlns="http://ns.adobe.com/air/application/4.0">
+	<id>LeTanki</id>
+    <versionNumber>1.0</versionNumber>
+    <filename>LeTanki</filename>
+    <name>LeTanki</name>
+    <copyright>Copyright (c) 2016 Tanki Online</copyright>
+    <initialWindow>
+        <title>Legacy Tanki</title>
+        <content>StandaloneLoader-2.0.swf?prelauncher=https://res.letanki.com/Prelauncher.swf&amp;swf=https://res.letanki.com/AlternativaLoader.swf&amp;config=https://res.letanki.com/config.xml&amp;resources=https://res.letanki.com&amp;balancer=https://res.letanki.com/s/status.js&amp;prefix=s&amp;locale=pt_BR</content>
+		<visible>true</visible>
+		<renderMode>direct</renderMode>
+		<depthAndStencil>true</depthAndStencil>
+        <maximizable>false</maximizable>
+    </initialWindow>
+    <icon>
+        <image16x16>icons/icon16.png</image16x16>
+        <image32x32>icons/icon32.png</image32x32>
+        <image48x48>icons/icon48.png</image48x48>
+        <image128x128>icons/icon128.png</image128x128>
+    </icon>
+</application>

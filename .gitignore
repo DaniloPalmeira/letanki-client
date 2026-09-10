@@ -1,0 +1,19 @@
+# Saida de compilacao
+/build/
+
+# SDK do Flex: ~30 MB de terceiros, resolvido por $env:FLEX_SDK ou junction
+/tools/
+
+# Sistema
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# IDEs
+.idea/
+.vscode/
+.fdt/
+.settings/
+.actionScriptProperties
+.flexProperties
+.project
