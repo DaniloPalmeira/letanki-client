@@ -12,7 +12,7 @@ Todo o resto do jogo (`Prelauncher.swf`, `AlternativaLoader.swf`, `entrance`,
 
 ```
 app/                              # imagem do que o instalador escreve no disco
-  LeTanki.exe                     # launcher
+  LeTanki.exe                     # launcher (gerado pelo adt, ver package.ps1)
   StandaloneLoader-2.0.swf        # o único SWF local (compilado de src/)
   META-INF/AIR/application.xml    # descritor: CDN e parâmetros do loader
   META-INF/signatures.xml         # assinatura do pacote .air original
@@ -27,6 +27,7 @@ src/                              # fonte do StandaloneLoader-2.0.swf
     LocalizedTexts.as
 
 build.ps1                         # src/ -> build/StandaloneLoader-2.0.swf
+package.ps1                       # descritor + icones -> build/LeTanki.exe
 ```
 
 O fonte em `src/` foi descompilado do SWF original (JPEXS/ffdec) e corrigido
@@ -54,6 +55,37 @@ cmd /c mklink /J tools\flex-sdk "C:\caminho\para\flex-sdk"
 O caminho do SDK pode ter espaço; o do repositório não — o parser de linha de
 comando do `mxmlc` quebra em caminho absoluto com espaço, e por isso o
 `build.ps1` roda tudo relativo à raiz.
+
+## Gerar o exe
+
+```powershell
+powershell -File package.ps1            # gera em build/
+powershell -File package.ps1 -Install   # gera e troca o exe em app/
+```
+
+O `LeTanki.exe` não tem código nosso: é o `CaptiveAppEntry.exe` do SDK do AIR
+com os ícones injetados na seção `.rsrc`. Quem faz isso é o `adt -target bundle`
+— o `adl` só *roda* um app a partir do descritor, nunca empacota. Conferido
+seção a seção contra o template do SDK: `.text`, `.rdata`, `.data` e `.reloc`
+saem idênticos, só a `.rsrc` muda (1 KB → 82 KB, os quatro ícones).
+
+O `adt` exige assinatura mesmo em `-target bundle`, então o script gera um
+certificado auto assinado descartável a cada rodada. Ela só existe no `META-INF`
+do bundle, que é jogado fora junto com o resto da saída — o exe em si sai sem
+assinatura Authenticode, igual ao original. O `-tsa none` também é obrigatório:
+o timestamp server padrão do `adt` morreu junto com a Adobe.
+
+**O exe gerado não é byte a byte o `app/LeTanki.exe` versionado.** O payload foi
+empacotado com AIR 22.0.0.153 e o SDK aqui é o AIR 32.0.0.116 — templates
+diferentes (69.432 contra 82.944 bytes), e o original ainda carrega um segundo
+jogo de ícones em PNG (IDs 1–4, ~14 KB) que o `adt` 32 não emite. Testado de
+verdade: o stub do AIR 32 sobe normal sobre o runtime captive AIR 22 de
+`app/Adobe AIR`, abre a janela e carrega o jogo. Ainda assim, `-Install` troca o
+que vai instalado no PC do usuário — por isso é opt-in, como no `build.ps1`.
+
+Nem duas rodadas seguidas do próprio `adt` batem entre si: ele distribui os IDs
+dos ícones no `.rsrc` em ordem arbitrária a cada execução. Mesmo conteúdo,
+bytes diferentes.
 
 ## Como o cliente sobe
 
