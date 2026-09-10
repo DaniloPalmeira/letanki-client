@@ -38,9 +38,10 @@ A saída sai em três pastas, todas fora do git: `obj/` é o SWF intermediário,
 no instalador original. O resto do cliente — exe, `META-INF`, `mimetype`, SWF —
 é produzido na hora.
 
-O fonte em `src/` foi descompilado do SWF original (JPEXS/ffdec) e corrigido
-até recompilar. Não é o fonte histórico: nomes de locais e parâmetros não
-existem mais no bytecode, então qualquer nome ali é inferido.
+O `src/` é código nosso, escrito do zero a partir do contrato observável — os
+parâmetros que o descritor entrega e o que o loader precisa fazer com eles. Não
+é descompilação: a versão anterior, essa sim tirada do SWF original com
+JPEXS/ffdec, está no histórico, em `ef5abd1`.
 
 ## Montar o cliente
 
@@ -105,6 +106,26 @@ cabeçalho, índice e os arquivos crus, e o Windows lê entrada PNG desde o Vist
 O `AppId` no `installer.iss` é fixo: é por ele que o Windows reconhece uma
 instalação existente para atualizar em vez de duplicar.
 
+## O loader
+
+O `StandaloneLoader-2.0.swf` faz uma coisa só: mostra o logo, baixa o
+`Prelauncher.swf` do endereço que veio na query string e entrega a tela para
+ele. São 248 linhas em três arquivos — `StandaloneLoader.as`, `Alert.as` e
+`LocalizedTexts.as`.
+
+O detalhe que justifica ele existir está em como o Prelauncher é carregado. Um
+`Loader.load()` apontado para `https://` põe o SWF no sandbox remoto, e de lá
+ele não pode encostar no `Stage`, que pertence ao nosso SWF — dá
+`SecurityError #2070` no instante em que o Prelauncher tenta montar a tela.
+Então os bytes vêm por `URLLoader` e são executados por `loadBytes()` com
+`allowLoadBytesCodeExecution`, o que roda tudo no sandbox da aplicação.
+
+É de lá também que o Prelauncher enxerga `stage.loaderInfo.parameters`, que são
+os parâmetros do descritor. Não é preciso repassar nada na mão.
+
+Toda exceção não tratada cai num handler que a mostra na tela. Sem isso, um erro
+no loader vira janela preta muda: o AIR não tem console para onde reclamar.
+
 ## Como o cliente sobe
 
 O `LeTanki.exe` lê `META-INF/AIR/application.xml` (cópia verbatim do
@@ -140,6 +161,12 @@ runtime captive 22, abre a janela e carrega o jogo.
 
 ## Notas
 
+- **De `deps/` só sai o que é provadamente inútil.** O `CaptiveAppEntry.exe` que
+  vinha no runtime foi removido: o nosso exe *é* ele, vindo do SDK 32. O resto
+  fica. O cliente sobe sem a `Resources/` inteira, mas isso não prova nada:
+  `WebKit.dll` e `NPSWF32.dll` só são carregados quando o app abre um
+  `HTMLLoader`/`StageWebView`, e a falta deles apareceria mais tarde, não no
+  arranque.
 - **Os ícones servem ao exe, não à execução.** O `adt` recusa empacotar sem
   eles (`error 303`) e injeta os quatro como `RT_ICON` no `.rsrc`. É de lá que
   sai o ícone do arquivo, da janela e da barra de tarefas: removendo a pasta

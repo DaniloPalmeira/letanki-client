@@ -1,161 +1,177 @@
 package projects.tanks.clients.fp10.StandaloneLoader
 {
-   import flash.desktop.NativeApplication;
-   import flash.display.Bitmap;
-   import flash.display.Loader;
-   import flash.display.LoaderInfo;
-   import flash.display.Screen;
-   import flash.display.Sprite;
-   import flash.display.StageAlign;
-   import flash.events.Event;
-   import flash.events.IOErrorEvent;
-   import flash.events.SecurityErrorEvent;
-   import flash.geom.Point;
-   import flash.geom.Rectangle;
-   import flash.net.URLLoader;
-   import flash.net.URLLoaderDataFormat;
-   import flash.net.URLRequest;
-   import flash.system.ApplicationDomain;
-   import flash.system.LoaderContext;
-   import flash.utils.ByteArray;
-   
-   [SWF(width="256",height="256",backgroundColor="#000000",frameRate="40")]
-   public class StandaloneLoader extends Sprite
-   {
-      
-      [Embed(source="/assets/logo.png")]
-      private var logo:Class;
-      
-      private var logoBmp:Bitmap;
-      
-      private var guiLayer:Sprite;
-      
-      private var prelauncher:Loader;
-      
-      private var locale:String;
-      
-      protected var prelauncherSwf:String;
-      
-      public function StandaloneLoader()
-      {
-         super();
-         addEventListener(Event.ADDED_TO_STAGE,this.init);
-      }
-      
-      private function init(e:Event = null) : void
-      {
-         removeEventListener(Event.ADDED_TO_STAGE,this.init);
-         this.prelauncherSwf = loaderInfo.parameters["prelauncher"] || "http://tankionline.com/Prelauncher.swf";
-         this.locale = loaderInfo.parameters["locale"] || "ru";
-         LocalizedTexts.setLocale(this.locale);
-         this.configureStage();
-         this.createGUI();
-         this.loadStandalone();
-      }
-      
-      private function configureStage() : void
-      {
-         stage.align = StageAlign.TOP_LEFT;
-         var size:int = 256;
-         stage.stageWidth = size;
-         stage.stageHeight = size;
-         stage.nativeWindow.maxSize = new Point(stage.nativeWindow.width,stage.nativeWindow.height);
-         stage.nativeWindow.minSize = new Point(stage.nativeWindow.width,stage.nativeWindow.height);
-         this.setCenterPosition();
-      }
-      
-      private function createGUI() : void
-      {
-         this.guiLayer = new Sprite();
-         this.logoBmp = new this.logo() as Bitmap;
-         this.guiLayer.addChild(this.logoBmp);
-         this.logoBmp.scaleX = 0.5;
-         this.logoBmp.scaleY = 0.5;
-         this.logoBmp.x = -(this.logoBmp.bitmapData.width * this.logoBmp.scaleX - stage.stageWidth) / 2;
-         this.logoBmp.y = -(this.logoBmp.bitmapData.height * this.logoBmp.scaleY - stage.stageHeight) / 2;
-         stage.addChild(this.guiLayer);
-      }
-      
-      private function removeGUI() : void
-      {
-         stage.removeChild(this.guiLayer);
-      }
-      
-      private function get version() : String
-      {
-         var xml:XML = NativeApplication.nativeApplication.applicationDescriptor;
-         var ns:Namespace = xml.namespace();
-         return xml.ns::versionNumber;
-      }
-      
-      private function loadStandalone() : void
-      {
-         if(this.prelauncherSwf.indexOf("file") < 0)
-         {
-            this.prelauncherSwf += "?rand=" + Math.random().toString();
-         }
-         var urlReq:URLRequest = new URLRequest(this.prelauncherSwf);
-         var urlLoader:URLLoader = new URLLoader();
-         urlLoader.dataFormat = URLLoaderDataFormat.BINARY;
-         urlLoader.addEventListener(Event.COMPLETE,this.byteArrayLoadComplete);
-         urlLoader.addEventListener(IOErrorEvent.IO_ERROR,this.onLoadingError);
-         urlLoader.addEventListener(SecurityErrorEvent.SECURITY_ERROR,this.onLoadingError);
-         urlLoader.load(urlReq);
-      }
-      
-      private function onLoadingError(event:Event) : void
-      {
-         Alert.showMessage(LocalizedTexts.CONNECTION_ERROR);
-      }
-      
-      private function isNewVersionAvailable(version:String) : Boolean
-      {
-         if(this.version != version)
-         {
-            Alert.showMessage(LocalizedTexts.NEW_VERSION_AVAILABLE(version,this.version));
-         }
-         return this.version == version;
-      }
-      
-      private function byteArrayLoadComplete(event:Event) : void
-      {
-         var bytes:ByteArray = URLLoader(event.target).data as ByteArray;
-         this.prelauncher = new Loader();
-         var loaderInfo:LoaderInfo = this.prelauncher.contentLoaderInfo;
-         loaderInfo.addEventListener(Event.COMPLETE,this.onLauncherLoadingComplete);
-         loaderInfo.addEventListener(IOErrorEvent.IO_ERROR,this.onLoadingError);
-         loaderInfo.addEventListener(SecurityErrorEvent.SECURITY_ERROR,this.onLoadingError);
-         var loaderContext:LoaderContext = new LoaderContext(false,ApplicationDomain.currentDomain);
-         loaderContext.allowCodeImport = true;
-         loaderContext.parameters = this.loaderInfo.parameters;
-         this.prelauncher.loadBytes(bytes,loaderContext);
-      }
-      
-      private function setCenterPosition() : void
-      {
-         var appBounds:Rectangle = stage.nativeWindow.bounds;
-         var screen:Screen = Screen.getScreensForRectangle(appBounds)[0];
-         stage.nativeWindow.x = (screen.bounds.width - stage.nativeWindow.width) / 2;
-         stage.nativeWindow.y = (screen.bounds.height - stage.nativeWindow.height) / 2;
-      }
-      
-      private function onLauncherLoadingComplete(event:Event) : void
-      {
-         this.removeGUI();
-         if(this.isNewVersionAvailable(this.prelauncher.getChildAt(0)["version"]))
-         {
-            stage.nativeWindow.maxSize = new Point(1050,650);
-            stage.nativeWindow.minSize = new Point(stage.nativeWindow.width,stage.nativeWindow.height);
-            stage.nativeWindow.width = 1000;
-            stage.nativeWindow.height = 600;
-            this.addChild(this.prelauncher.getChildAt(0));
-            stage.stageWidth = 1000;
-            stage.stageHeight = 600;
-            stage.nativeWindow.maxSize = new Point(stage.nativeWindow.width,stage.nativeWindow.height);
-            stage.nativeWindow.minSize = new Point(stage.nativeWindow.width,stage.nativeWindow.height);
-            this.setCenterPosition();
-         }
-      }
-   }
-}
+    import flash.desktop.NativeApplication;
+    import flash.display.Bitmap;
+    import flash.display.BitmapData;
+    import flash.display.Loader;
+    import flash.display.Screen;
+    import flash.display.Sprite;
+    import flash.display.StageAlign;
+    import flash.display.StageScaleMode;
+    import flash.events.Event;
+    import flash.events.IOErrorEvent;
+    import flash.events.SecurityErrorEvent;
+    import flash.events.UncaughtErrorEvent;
+    import flash.geom.Rectangle;
+    import flash.net.URLLoader;
+    import flash.net.URLLoaderDataFormat;
+    import flash.net.URLRequest;
+    import flash.system.ApplicationDomain;
+    import flash.system.LoaderContext;
+    import flash.utils.ByteArray;
 
+    /**
+     * O que o LeTanki.exe abre. O trabalho todo e: mostrar o logo, baixar o
+     * Prelauncher do endereco que veio na query string e entregar a tela para
+     * ele. Dali em diante nada mais aqui roda -- o jogo inteiro vem do CDN.
+     *
+     * Os enderecos chegam pelo <content> do application.xml.
+     *
+     * O SWF nao e carregado por Loader.load: conteudo baixado de http cai no
+     * sandbox remoto e nao pode encostar no Stage, que e nosso -- da
+     * SecurityError #2070 na hora que o Prelauncher tenta montar a tela. Por
+     * isso os bytes vem por URLLoader e sao executados com loadBytes e
+     * allowLoadBytesCodeExecution, o que roda tudo no sandbox da aplicacao.
+     *
+     * E de la que o Prelauncher enxerga stage.loaderInfo.parameters, que sao os
+     * parametros do descritor -- swf, config, resources, balancer, prefix e
+     * locale. Nao ha nada a repassar na mao.
+     */
+    [SWF(width="256", height="256", frameRate="40", backgroundColor="#000000")]
+    public class StandaloneLoader extends Sprite
+    {
+        [Embed(source="/assets/logo.png")]
+        private static const LOGO:Class;
+
+        private static const DEFAULT_PRELAUNCHER:String = "https://res.letanki.com/Prelauncher.swf";
+
+        private var texts:LocalizedTexts;
+        private var logo:Bitmap;
+        private var bytes:URLLoader;
+        private var loader:Loader;
+        private var url:String;
+
+        public function StandaloneLoader()
+        {
+            super();
+            if (stage) {
+                this.start();
+            } else {
+                this.addEventListener(Event.ADDED_TO_STAGE, this.onAddedToStage);
+            }
+        }
+
+        private function onAddedToStage(event:Event):void
+        {
+            this.removeEventListener(Event.ADDED_TO_STAGE, this.onAddedToStage);
+            this.start();
+        }
+
+        private function start():void
+        {
+            // NO_SCALE porque quem manda no tamanho e o Prelauncher: ele
+            // redimensiona a janela quando assume.
+            stage.scaleMode = StageScaleMode.NO_SCALE;
+            stage.align = StageAlign.TOP_LEFT;
+
+            // Sem isso, qualquer excecao nao tratada vira janela preta muda --
+            // o AIR nao tem console para onde reclamar.
+            loaderInfo.uncaughtErrorEvents.addEventListener(
+                UncaughtErrorEvent.UNCAUGHT_ERROR, this.onUncaughtError);
+
+            var parameters:Object = loaderInfo.parameters || {};
+            this.texts = new LocalizedTexts(parameters["locale"]);
+
+            this.showLogo();
+            this.centerWindow();
+
+            this.url = parameters["prelauncher"] || DEFAULT_PRELAUNCHER;
+            this.bytes = new URLLoader();
+            this.bytes.dataFormat = URLLoaderDataFormat.BINARY;
+            this.bytes.addEventListener(Event.COMPLETE, this.onBytesReady);
+            this.bytes.addEventListener(IOErrorEvent.IO_ERROR, this.onPrelauncherFailed);
+            this.bytes.addEventListener(SecurityErrorEvent.SECURITY_ERROR, this.onPrelauncherFailed);
+            this.bytes.load(new URLRequest(this.url));
+        }
+
+        private function onBytesReady(event:Event):void
+        {
+            var context:LoaderContext = new LoaderContext();
+            // O que tira o Prelauncher do sandbox remoto.
+            context.allowLoadBytesCodeExecution = true;
+            // Dominio filho: as classes dele nao colidem com as nossas.
+            context.applicationDomain = new ApplicationDomain(ApplicationDomain.currentDomain);
+
+            this.loader = new Loader();
+            this.loader.contentLoaderInfo.addEventListener(Event.COMPLETE, this.onPrelauncherReady);
+            this.loader.contentLoaderInfo.addEventListener(IOErrorEvent.IO_ERROR, this.onPrelauncherFailed);
+            this.loader.loadBytes(ByteArray(this.bytes.data), context);
+        }
+
+        private function showLogo():void
+        {
+            // Sem o framework Flex linkado, o mxmlc gera o [Embed] de imagem
+            // como BitmapData; com ele, como Bitmap. Aceita os dois.
+            var asset:Object = new LOGO();
+            this.logo = asset is Bitmap ? Bitmap(asset) : new Bitmap(BitmapData(asset));
+            this.logo.smoothing = true;
+            // O PNG e maior que o palco; encolhe mantendo proporcao.
+            var scale:Number = Math.min(stage.stageWidth / this.logo.width, stage.stageHeight / this.logo.height);
+            this.logo.scaleX = this.logo.scaleY = scale;
+            this.logo.x = (stage.stageWidth - this.logo.width) / 2;
+            this.logo.y = (stage.stageHeight - this.logo.height) / 2;
+            this.addChild(this.logo);
+        }
+
+        private function centerWindow():void
+        {
+            var window:Object = stage.nativeWindow;
+            if (window == null) {
+                return;
+            }
+            var bounds:Rectangle = Screen.mainScreen.visibleBounds;
+            window.x = bounds.x + (bounds.width - window.width) / 2;
+            window.y = bounds.y + (bounds.height - window.height) / 2;
+        }
+
+        private function onPrelauncherReady(event:Event):void
+        {
+            if (this.logo != null && this.contains(this.logo)) {
+                this.removeChild(this.logo);
+                this.logo = null;
+            }
+            this.addChild(this.loader);
+        }
+
+        private function onPrelauncherFailed(event:Event):void
+        {
+            if (this.logo != null && this.contains(this.logo)) {
+                this.logo.alpha = 0.25;
+            }
+
+            this.showAlert(this.texts.get("loadFailed"),
+                this.texts.format("details", "%URL%", this.url));
+        }
+
+        private function showAlert(message:String, detail:String):void
+        {
+            var alert:Alert = new Alert(message, detail, this.texts.get("quit"), this.quit);
+            alert.x = (stage.stageWidth - alert.width) / 2;
+            alert.y = (stage.stageHeight - alert.height) / 2;
+            this.addChild(alert);
+        }
+
+        private function onUncaughtError(event:UncaughtErrorEvent):void
+        {
+            event.preventDefault();
+            var error:Object = event.error;
+            this.showAlert(this.texts.get("loadFailed"),
+                error is Error ? Error(error).message : String(error));
+        }
+
+        private function quit():void
+        {
+            NativeApplication.nativeApplication.exit();
+        }
+    }
+}

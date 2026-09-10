@@ -46,6 +46,11 @@ try {
         Write-Host "certificado novo em $cert"
     }
 
+    # Com o cliente aberto, o Adobe AIR.dll fica travado e o Remove-Item abaixo
+    # falha com "acesso negado", que nao diz nada sobre a causa real.
+    if (Get-Process -Name LeTanki -ErrorAction SilentlyContinue) {
+        throw 'LeTanki esta aberto. Feche antes: o build\ nao pode ser trocado com o runtime carregado.'
+    }
     if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
 
     # -tsa none: o timestamp server padrao do adt morreu junto com a Adobe; sem
