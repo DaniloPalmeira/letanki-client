@@ -1,6 +1,6 @@
 # letanki-client
 
-O cliente Flash/AIR legado do Tanki Online — o que fica **no PC do usuário**
+O cliente Flash/AIR - o que fica **no PC do usuário**
 quando ele instala o LeTanki. Aqui ficam o fonte do que é nosso e a única
 dependência binária que não dá para gerar; o cliente inteiro sai do
 `package.ps1`.
