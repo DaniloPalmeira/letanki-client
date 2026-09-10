@@ -1,0 +1,207 @@
+<title>LeTanki — cliente para Windows</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Cliente do LeTanki para Windows: launcher com runtime embarcado, sem precisar de Flash Player.">
+<!--
+  Pagina do projeto, servida pelo GitHub Pages a partir de docs/.
+  ANTES DE PUBLICAR: trocar DaniloPalmeira pela conta real do repositorio.
+  Ocorrencias: botao de download, link da politica de assinatura e rodape.
+-->
+<style>
+  :root {
+    --fundo: #f7f7f5;
+    --painel: #ffffff;
+    --texto: #1c1c1a;
+    --suave: #5f5f58;
+    --linha: #e2e2dc;
+    --acento: #6b7f3a;
+    --acento-texto: #ffffff;
+    --aviso-fundo: #fdf6e3;
+    --aviso-linha: #e8d9a8;
+    --codigo: #f0f0ea;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --fundo: #16161a;
+      --painel: #1e1e23;
+      --texto: #e8e8e3;
+      --suave: #a0a099;
+      --linha: #32323a;
+      --acento: #8ba34d;
+      --acento-texto: #14140f;
+      --aviso-fundo: #2a2418;
+      --aviso-linha: #4d4126;
+      --codigo: #26262c;
+    }
+  }
+  :root[data-theme="dark"] {
+    --fundo: #16161a;
+    --painel: #1e1e23;
+    --texto: #e8e8e3;
+    --suave: #a0a099;
+    --linha: #32323a;
+    --acento: #8ba34d;
+    --acento-texto: #14140f;
+    --aviso-fundo: #2a2418;
+    --aviso-linha: #4d4126;
+    --codigo: #26262c;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--fundo);
+    color: var(--texto);
+    font: 16px/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .envelope { max-width: 46rem; margin: 0 auto; padding: 3rem 1.25rem 4rem; }
+
+  header { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
+  header img { width: 72px; height: 72px; image-rendering: auto; }
+  h1 { font-size: 2rem; margin: 0; letter-spacing: -0.02em; }
+  .chamada { color: var(--suave); margin: 0.15rem 0 0; }
+
+  h2 { font-size: 1.15rem; margin: 2.5rem 0 0.75rem; letter-spacing: -0.01em; }
+  p { margin: 0.75rem 0; }
+  ul { margin: 0.75rem 0; padding-left: 1.25rem; }
+  li { margin: 0.35rem 0; }
+  a { color: var(--acento); }
+  code {
+    background: var(--codigo);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font: 0.875em ui-monospace, "Cascadia Code", Consolas, monospace;
+  }
+
+  .baixar {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: var(--painel);
+    border: 1px solid var(--linha);
+    border-radius: 10px;
+  }
+  .botao {
+    display: inline-block;
+    background: var(--acento);
+    color: var(--acento-texto);
+    font-weight: 600;
+    text-decoration: none;
+    padding: 0.7rem 1.5rem;
+    border-radius: 7px;
+  }
+  .botao:hover { filter: brightness(1.08); }
+  .meta { color: var(--suave); font-size: 0.9rem; margin: 0.85rem 0 0; }
+
+  .aviso {
+    background: var(--aviso-fundo);
+    border: 1px solid var(--aviso-linha);
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+    margin: 1.25rem 0;
+  }
+  .aviso p { margin: 0.4rem 0; }
+  .aviso p:first-child { margin-top: 0; }
+  .aviso p:last-child { margin-bottom: 0; }
+
+  table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; }
+  th, td { text-align: left; padding: 0.5rem 0.75rem 0.5rem 0; border-bottom: 1px solid var(--linha); vertical-align: top; }
+  th { font-weight: 600; white-space: nowrap; width: 11rem; }
+
+  footer {
+    margin-top: 3.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--linha);
+    color: var(--suave);
+    font-size: 0.9rem;
+  }
+</style>
+
+<div class="envelope">
+
+<header>
+  <img src="data:image/png;base64,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" alt="">
+  <div>
+    <h1>LeTanki</h1>
+    <p class="chamada">O cliente de desktop para Windows.</p>
+  </div>
+</header>
+
+<div class="baixar">
+  <a class="botao" href="https://github.com/DaniloPalmeira/letanki-client/releases/latest">Baixar para Windows</a>
+  <p class="meta">LeTanki-setup.exe &middot; 10,4 MB &middot; Windows 10 ou mais novo</p>
+</div>
+
+<div class="aviso">
+  <p><strong>O instalador ainda não é assinado digitalmente.</strong> O Windows
+  vai mostrar o aviso do SmartScreen ("O Windows protegeu o seu PC") ao abri-lo.
+  Para prosseguir: <em>Mais informações</em> &rarr; <em>Executar assim mesmo</em>.</p>
+  <p>Baixe apenas da página de releases acima. Veja a
+  <a href="https://github.com/DaniloPalmeira/letanki-client/blob/main/CODE-SIGNING-POLICY.md">política
+  de assinatura de código</a> para o estado atual e como verificar um binário.</p>
+</div>
+
+<h2>O que ele faz</h2>
+
+<p>O LeTanki é um jogo de tanques em Flash. Este instalador entrega o cliente de
+desktop dele: uma janela nativa que abre o jogo sem depender de navegador.</p>
+
+<p>O programa é um <em>launcher</em>. Ele não carrega o jogo dentro de si — a
+cada abertura, baixa a versão atual dos servidores do projeto e a executa. Na
+prática:</p>
+
+<ul>
+  <li>abre uma janela e mostra a logo enquanto carrega;</li>
+  <li>baixa o carregador do jogo de <code>res.letanki.com</code>;</li>
+  <li>entrega a tela para ele, que cuida do resto — login, menu e partidas;</li>
+  <li>se o download falhar, mostra o erro na tela em vez de fechar calado.</li>
+</ul>
+
+<p>O runtime do Adobe AIR vai embarcado no instalador. Não é preciso ter Flash
+Player nem Adobe AIR instalados, e nada é registrado no sistema para outros
+programas usarem: o runtime fica dentro da pasta do LeTanki e serve só a ele.</p>
+
+<h2>Requisitos</h2>
+
+<table>
+  <tr><th>Sistema</th><td>Windows 10 ou mais novo, 64 ou 32 bits</td></tr>
+  <tr><th>Espaço em disco</th><td>cerca de 60 MB</td></tr>
+  <tr><th>Conexão</th><td>obrigatória — o jogo é baixado a cada abertura</td></tr>
+  <tr><th>Vídeo</th><td>placa com suporte a aceleração 3D (o jogo usa Stage3D)</td></tr>
+</table>
+
+<h2>Instalar e desinstalar</h2>
+
+<p>O instalador pede elevação, porque escreve em
+<code>C:\Program&nbsp;Files\LeTanki&nbsp;Online</code>. Ele cria um atalho no menu
+Iniciar e, se você marcar a opção, outro na área de trabalho.</p>
+
+<p>Para remover, use <strong>Configurações &rarr; Aplicativos &rarr; Aplicativos
+instalados</strong>, ou o <code>unins000.exe</code> na pasta de instalação. A
+desinstalação apaga a pasta inteira.</p>
+
+<p>Suas configurações ficam em <code>%APPDATA%\LeTanki</code> e não são removidas
+junto — apague essa pasta à mão se quiser começar do zero.</p>
+
+<h2>Rede e privacidade</h2>
+
+<p>O cliente conversa apenas com os servidores do projeto, em
+<code>letanki.com</code> e seus subdomínios. Não há telemetria, anúncio ou
+rastreador embutido no launcher, e ele não altera configuração do sistema fora
+da própria pasta de instalação.</p>
+
+<h2>Licença e código</h2>
+
+<p>O código e a arte são abertos, sob licença
+<a href="https://github.com/DaniloPalmeira/letanki-client/blob/main/LICENSE">MIT</a>:
+copie, modifique e redistribua à vontade, mantendo o aviso de copyright.</p>
+
+<p>A exceção é o runtime do Adobe AIR que vai embarcado, redistribuído sob os
+termos da Adobe e não sob a MIT. Ele inclui WebKit sob LGPL, com os avisos
+preservados dentro da pasta do runtime.</p>
+
+<footer>
+  <a href="https://github.com/DaniloPalmeira/letanki-client">Código no GitHub</a>
+  &middot;
+  <a href="https://github.com/DaniloPalmeira/letanki-client/blob/main/CODE-SIGNING-POLICY.md">Política de assinatura</a>
+</footer>
+
+</div>

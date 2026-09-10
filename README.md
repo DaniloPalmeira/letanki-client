@@ -29,6 +29,9 @@ build.ps1                         # src/ -> obj/StandaloneLoader-2.0.swf
 package.ps1                       # tudo -> build/
 installer.iss                     # script do Inno Setup
 installer.ps1                     # build/ -> dist/LeTanki-setup.exe
+
+CODE-SIGNING-POLICY.md            # quem assina os binários, e como conferir
+docs/index.html                   # página do projeto e de download
 ```
 
 A saída sai em três pastas, todas fora do git: `obj/` é o SWF intermediário,
@@ -206,6 +209,16 @@ runtime captive 22, abre a janela e carrega o jogo.
 - **O payload original está no histórico.** A pasta `app/`, byte a byte do
   instalador, foi removida em favor de gerar tudo. Continua recuperável:
   `git show fefadaa:app/LeTanki.exe`, `git show fefadaa:app/META-INF/signatures.xml`.
+
+## Página do projeto
+
+`docs/index.html` é a página de download, servida pelo GitHub Pages em
+**Settings → Pages → Source: `main` / `docs`**. É uma página só, sem build e sem
+dependência externa — o ícone vai embutido como data URI.
+
+Ela descreve o que o cliente faz, o que ele acessa na rede e como desinstalar.
+Não é enfeite: essas três coisas são requisitos da candidatura ao SignPath
+Foundation, junto com a [política de assinatura](CODE-SIGNING-POLICY.md).
 
 ## Licença
 
