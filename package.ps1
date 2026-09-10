@@ -1,11 +1,11 @@
-# Monta build\LeTanki\ -- o cliente completo e rodavel.
+# Monta build\ -- o cliente completo e rodavel.
 #
 #   powershell -File package.ps1
 #
 # Entradas:
 #   application.xml   descritor: enderecos do CDN e parametros do loader
 #   icons\            icones do launcher
-#   src\              fonte do SWF; o build.ps1 compila, chamado aqui embaixo
+#   src\              fonte do SWF; o build.ps1 compila em obj\, chamado aqui
 #   deps\Adobe AIR\   runtime captive AIR 22.0.0.153 -- a unica dependencia
 #                     binaria, e a unica coisa do cliente que nao se gera
 #
@@ -36,7 +36,7 @@ try {
     & "$root\build.ps1"
 
     $cert = 'adt-cert.p12'
-    $dest = 'build\LeTanki'
+    $dest = 'build'
 
     # O adt exige assinatura mesmo em -target bundle. Gera o certificado uma vez
     # e reaproveita: assim o META-INF sai igual em toda rodada.
@@ -54,7 +54,7 @@ try {
         -storetype pkcs12 -keystore $cert -storepass letanki -tsa none `
         -target bundle $dest 'application.xml' `
         -C '.' 'icons' `
-        -C 'build' 'StandaloneLoader-2.0.swf'
+        -C 'obj' 'StandaloneLoader-2.0.swf'
     if ($LASTEXITCODE -ne 0) { throw "adt -package falhou (exit $LASTEXITCODE)" }
 
     # Fora o runtime, que vem de deps\ e nao do SDK.

@@ -1,5 +1,8 @@
-# Saida de compilacao
+# Saida de compilacao: obj\ e o SWF intermediario, build\ e o cliente
+# montado, dist\ e o instalador.
+/obj/
 /build/
+/dist/
 
 # Certificado auto assinado do adt: descartavel, mas fixo para o META-INF nao
 # mudar a cada build. Apagar so troca a identidade -- ela nao vale nada mesmo.

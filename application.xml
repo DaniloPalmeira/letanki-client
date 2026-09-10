@@ -4,7 +4,6 @@
     <versionNumber>1.0</versionNumber>
     <filename>LeTanki</filename>
     <name>LeTanki</name>
-    <copyright>Copyright (c) 2026 Legacy Tanki</copyright>
     <initialWindow>
         <title>Legacy Tanki</title>
         <content>StandaloneLoader-2.0.swf?prelauncher=https://res.letanki.com/Prelauncher.swf&amp;swf=https://res.letanki.com/AlternativaLoader.swf&amp;config=https://res.letanki.com/config.xml&amp;resources=https://res.letanki.com&amp;balancer=https://res.letanki.com/s/status.js&amp;prefix=s&amp;locale=pt_BR</content>

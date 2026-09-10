@@ -25,13 +25,18 @@ src/                              # fonte do StandaloneLoader-2.0.swf
 deps/
   Adobe AIR/Versions/1.0/         # runtime AIR 22.0.0.153 captive, 27 MB
 
-build.ps1                         # src/ -> build/StandaloneLoader-2.0.swf
-package.ps1                       # tudo -> build/LeTanki/
+build.ps1                         # src/ -> obj/StandaloneLoader-2.0.swf
+package.ps1                       # tudo -> build/
+installer.iss                     # script do Inno Setup
+installer.ps1                     # build/ -> dist/LeTanki-setup.exe
 ```
+
+A saída sai em três pastas, todas fora do git: `obj/` é o SWF intermediário,
+`build/` é o cliente montado e `dist/` é o instalador.
 
 `deps/` é a única coisa versionada que não se gera: o runtime captive que veio
 no instalador original. O resto do cliente — exe, `META-INF`, `mimetype`, SWF —
-é produzido na hora, em `build/LeTanki/`.
+é produzido na hora.
 
 O fonte em `src/` foi descompilado do SWF original (JPEXS/ffdec) e corrigido
 até recompilar. Não é o fonte histórico: nomes de locais e parâmetros não
@@ -43,7 +48,7 @@ existem mais no bytecode, então qualquer nome ali é inferido.
 powershell -File package.ps1
 ```
 
-Sai em `build/LeTanki/`, pronto para rodar. O script compila o SWF (chamando o
+Sai em `build/`, pronto para rodar. O script compila o SWF (chamando o
 `build.ps1`), manda o `adt` empacotar — exe, `META-INF` e `mimetype` — e troca
 o runtime no fim: o `adt` embarca o **AIR 32** do próprio SDK, e o que este
 cliente sempre rodou é o **AIR 22.0.0.153** de `deps/`.
@@ -65,6 +70,40 @@ cmd /c mklink /J tools\flex-sdk "C:\caminho\para\flex-sdk"
 O caminho do SDK pode ter espaço; o do repositório não — o parser de linha de
 comando do `mxmlc` quebra em caminho absoluto com espaço, e por isso os scripts
 rodam tudo relativo à raiz.
+
+## Instalador
+
+```powershell
+powershell -File installer.ps1
+```
+
+Sai em `dist/LeTanki-setup.exe`. O script roda o `package.ps1` antes, para o
+instalador nunca empacotar um build velho.
+
+Precisa do **Inno Setup 6**, que é de propósito: o instalador original do
+LeTanki também era Inno — o `unins000.exe`/`unins000.dat` que ele deixa no
+disco é a assinatura disso. O `adt` tem `-target native`, mas não serve: ele
+embarca o runtime do próprio SDK, e este cliente roda no AIR 22 de `deps/`.
+
+```powershell
+winget install --id JRSoftware.InnoSetup
+```
+
+O `installer.ps1` procura o `ISCC.exe` em `$env:INNO_SETUP` e depois nos
+caminhos padrão de instalação.
+
+Instala em `C:\Program Files\LeTanki Online`, o que pede elevação. Dá para
+instalar ali porque o cliente não escreve ao lado do exe: o que ele guarda vai
+para `%APPDATA%\LeTanki`. O `ArchitecturesInstallIn64BitMode` está ligado só
+para o `{autopf}` não cair em `Program Files (x86)`, que é onde um instalador
+de 32 bits aterrissa por padrão.
+
+O ícone do setup sai de `icons/`, montado pelo `installer.ps1`: um `.ico` é
+cabeçalho, índice e os arquivos crus, e o Windows lê entrada PNG desde o Vista
+— não precisa converter nada.
+
+O `AppId` no `installer.iss` é fixo: é por ele que o Windows reconhece uma
+instalação existente para atualizar em vez de duplicar.
 
 ## Como o cliente sobe
 
@@ -105,7 +144,11 @@ runtime captive 22, abre a janela e carrega o jogo.
   eles (`error 303`) e injeta os quatro como `RT_ICON` no `.rsrc`. É de lá que
   sai o ícone do arquivo, da janela e da barra de tarefas: removendo a pasta
   `icons/` do cliente montado, ele sobe igual e a janela mantém o mesmo ícone —
-  comparados os bitmaps extraídos por `WM_GETICON`, idênticos.
+  comparados os bitmaps extraídos por `WM_GETICON`, idênticos. O `LeTanki.exe`
+  do instalador original carregava ainda os quatro PNGs crus (IDs 1–4,
+  630/1835/2626/9290 bytes) além dos `RT_ICON` em BMP do `adt`: alguém injetava
+  os PNGs no binário depois de empacotar, que é o mesmo truque do `.ico` do
+  setup.
 - **SWF v17 (Flash Player 11.4).** O runtime de `deps/` é o AIR 22.0.0.153, que
   recusa SWF de versão mais nova. O `build.ps1` fixa `-swf-version=17`; não
   aumentar sem testar no cliente de verdade.
@@ -144,4 +187,5 @@ runtime captive 22, abre a janela e carrega o jogo.
 - `adt-cert.p12` — certificado auto assinado, gerado na primeira execução do
   `package.ps1`.
 - `tools/flex-sdk` — SDK de terceiros, ~30 MB.
-- `build/` — saída de compilação.
+- `obj/`, `build/`, `dist/` — saída de compilação: o SWF intermediário, o
+  cliente montado e o instalador.

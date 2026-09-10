@@ -1,8 +1,9 @@
-# Compila src\ -> build\StandaloneLoader-2.0.swf.
+# Compila src\ -> obj\StandaloneLoader-2.0.swf.
 #
 #   powershell -File build.ps1
 #
-# So o SWF. Quem monta o cliente inteiro e o package.ps1, que chama este aqui.
+# So o SWF, e ele e intermediario: quem monta o cliente e o package.ps1, que
+# chama este aqui e leva o SWF para dentro de build\.
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 
@@ -18,8 +19,8 @@ try {
         throw "SDK do Flex nao encontrado em '$sdk'. Aponte `$env:FLEX_SDK ou crie tools\flex-sdk (ver README)."
     }
 
-    New-Item -ItemType Directory -Force 'build' | Out-Null
-    $swf = 'build\StandaloneLoader-2.0.swf'
+    New-Item -ItemType Directory -Force 'obj' | Out-Null
+    $swf = 'obj\StandaloneLoader-2.0.swf'
 
     # +configname=air: o loader usa flash.desktop.NativeApplication e
     # flash.display.Screen, que so existem no perfil AIR.
