@@ -1,8 +1,9 @@
 # letanki-client
 
-O que fica **no PC do usuário** quando ele instala o LeTanki — o cliente
-Flash/AIR legado do Tanki Online. Este repositório é a imagem do payload do
-instalador, mais o fonte editável do único SWF que vai junto.
+O cliente Flash/AIR legado do Tanki Online — o que fica **no PC do usuário**
+quando ele instala o LeTanki. Aqui ficam o fonte do que é nosso e a única
+dependência binária que não dá para gerar; o cliente inteiro sai do
+`package.ps1`.
 
 Todo o resto do jogo (`Prelauncher.swf`, `AlternativaLoader.swf`, `entrance`,
 `game`, `hardware`/`software`, localização) é baixado do CDN a cada abertura e
@@ -11,13 +12,8 @@ Todo o resto do jogo (`Prelauncher.swf`, `AlternativaLoader.swf`, `entrance`,
 ## Estrutura
 
 ```
-app/                              # imagem do que o instalador escreve no disco
-  LeTanki.exe                     # launcher (gerado pelo adt, ver package.ps1)
-  StandaloneLoader-2.0.swf        # o único SWF local (compilado de src/)
-  META-INF/AIR/application.xml    # descritor: CDN e parâmetros do loader
-  META-INF/signatures.xml         # assinatura do pacote .air original
-  icons/                          # 16/32/48/128
-  Adobe AIR/Versions/1.0/         # runtime AIR 22.0.0.153 embarcado (captive)
+application.xml                   # descritor AIR: CDN e parâmetros do loader
+icons/                            # 16/32/48/128, viram o ícone do exe
 
 src/                              # fonte do StandaloneLoader-2.0.swf
   assets/logo.png
@@ -26,71 +22,55 @@ src/                              # fonte do StandaloneLoader-2.0.swf
     Alert.as
     LocalizedTexts.as
 
+deps/
+  Adobe AIR/Versions/1.0/         # runtime AIR 22.0.0.153 captive, 27 MB
+
 build.ps1                         # src/ -> build/StandaloneLoader-2.0.swf
-package.ps1                       # descritor + icones -> build/LeTanki.exe
+package.ps1                       # tudo -> build/LeTanki/
 ```
+
+`deps/` é a única coisa versionada que não se gera: o runtime captive que veio
+no instalador original. O resto do cliente — exe, `META-INF`, `mimetype`, SWF —
+é produzido na hora, em `build/LeTanki/`.
 
 O fonte em `src/` foi descompilado do SWF original (JPEXS/ffdec) e corrigido
 até recompilar. Não é o fonte histórico: nomes de locais e parâmetros não
 existem mais no bytecode, então qualquer nome ali é inferido.
 
-## Compilar o SWF
+## Montar o cliente
 
 ```powershell
-powershell -File build.ps1            # compila em build/
-powershell -File build.ps1 -Install   # compila e troca o SWF em app/
+powershell -File package.ps1
 ```
 
-O `-Install` é separado de propósito: compilar só para conferir não pode sujar
-`app/`, que é a imagem do que vai instalado.
+Sai em `build/LeTanki/`, pronto para rodar. O script compila o SWF (chamando o
+`build.ps1`), manda o `adt` empacotar — exe, `META-INF` e `mimetype` — e troca
+o runtime no fim: o `adt` embarca o **AIR 32** do próprio SDK, e o que este
+cliente sempre rodou é o **AIR 22.0.0.153** de `deps/`.
 
-Precisa do **Apache Flex 4.16.1 com overlay do Adobe AIR SDK 32**. O build
-procura em `$env:FLEX_SDK` e depois em `tools\flex-sdk` (fora do git). Para
-apontar para um SDK que já existe em outro lugar:
+Para compilar só o SWF, sem empacotar:
+
+```powershell
+powershell -File build.ps1
+```
+
+Precisa do **Apache Flex 4.16.1 com overlay do Adobe AIR SDK 32**. Os dois
+scripts procuram em `$env:FLEX_SDK` e depois em `tools\flex-sdk` (fora do git).
+Para apontar para um SDK que já existe em outro lugar:
 
 ```powershell
 cmd /c mklink /J tools\flex-sdk "C:\caminho\para\flex-sdk"
 ```
 
 O caminho do SDK pode ter espaço; o do repositório não — o parser de linha de
-comando do `mxmlc` quebra em caminho absoluto com espaço, e por isso o
-`build.ps1` roda tudo relativo à raiz.
-
-## Gerar o exe
-
-```powershell
-powershell -File package.ps1            # gera em build/
-powershell -File package.ps1 -Install   # gera e troca o exe em app/
-```
-
-O `LeTanki.exe` não tem código nosso: é o `CaptiveAppEntry.exe` do SDK do AIR
-com os ícones injetados na seção `.rsrc`. Quem faz isso é o `adt -target bundle`
-— o `adl` só *roda* um app a partir do descritor, nunca empacota. Conferido
-seção a seção contra o template do SDK: `.text`, `.rdata`, `.data` e `.reloc`
-saem idênticos, só a `.rsrc` muda (1 KB → 82 KB, os quatro ícones).
-
-O `adt` exige assinatura mesmo em `-target bundle`, então o script gera um
-certificado auto assinado descartável a cada rodada. Ela só existe no `META-INF`
-do bundle, que é jogado fora junto com o resto da saída — o exe em si sai sem
-assinatura Authenticode, igual ao original. O `-tsa none` também é obrigatório:
-o timestamp server padrão do `adt` morreu junto com a Adobe.
-
-**O exe gerado não é byte a byte o `app/LeTanki.exe` versionado.** O payload foi
-empacotado com AIR 22.0.0.153 e o SDK aqui é o AIR 32.0.0.116 — templates
-diferentes (69.432 contra 82.944 bytes), e o original ainda carrega um segundo
-jogo de ícones em PNG (IDs 1–4, ~14 KB) que o `adt` 32 não emite. Testado de
-verdade: o stub do AIR 32 sobe normal sobre o runtime captive AIR 22 de
-`app/Adobe AIR`, abre a janela e carrega o jogo. Ainda assim, `-Install` troca o
-que vai instalado no PC do usuário — por isso é opt-in, como no `build.ps1`.
-
-Nem duas rodadas seguidas do próprio `adt` batem entre si: ele distribui os IDs
-dos ícones no `.rsrc` em ordem arbitrária a cada execução. Mesmo conteúdo,
-bytes diferentes.
+comando do `mxmlc` quebra em caminho absoluto com espaço, e por isso os scripts
+rodam tudo relativo à raiz.
 
 ## Como o cliente sobe
 
-O `LeTanki.exe` lê `META-INF/AIR/application.xml`, que abre o
-`StandaloneLoader-2.0.swf` com os endereços de produção na query string:
+O `LeTanki.exe` lê `META-INF/AIR/application.xml` (cópia verbatim do
+`application.xml` da raiz), que abre o `StandaloneLoader-2.0.swf` com os
+endereços de produção na query string:
 
 ```
 StandaloneLoader-2.0.swf
@@ -103,33 +83,65 @@ StandaloneLoader-2.0.swf
 ```
 
 O loader baixa e executa o `Prelauncher.swf`; dali em diante tudo vem do CDN.
-Trocar o CDN é editar essa linha do `application.xml` — nada no SWF é preciso
+Trocar o CDN é editar essa linha do `application.xml` — nada precisa
 recompilar para isso.
+
+## O exe
+
+O `LeTanki.exe` não tem código nosso: é o `CaptiveAppEntry.exe` do SDK do AIR
+com os ícones injetados na seção `.rsrc`. Quem faz isso é o `adt -target
+bundle` — o `adl` só *roda* um app a partir do descritor, nunca empacota.
+Conferido seção a seção contra o template do SDK: `.text`, `.rdata`, `.data` e
+`.reloc` saem idênticos, só a `.rsrc` muda.
+
+Ele não sai igual ao exe do instalador original, e não tem como: aquele foi
+empacotado com AIR 22.0.0.153 e o SDK aqui é o AIR 32.0.0.116 — templates
+diferentes, 69.432 contra 82.944 bytes. Testado: o stub do 32 sobe sobre o
+runtime captive 22, abre a janela e carrega o jogo.
 
 ## Notas
 
-- **SWF v17 (Flash Player 11.4).** O runtime embarcado é o AIR 22.0.0.153, que
+- **Os ícones servem ao exe, não à execução.** O `adt` recusa empacotar sem
+  eles (`error 303`) e injeta os quatro como `RT_ICON` no `.rsrc`. É de lá que
+  sai o ícone do arquivo, da janela e da barra de tarefas: removendo a pasta
+  `icons/` do cliente montado, ele sobe igual e a janela mantém o mesmo ícone —
+  comparados os bitmaps extraídos por `WM_GETICON`, idênticos.
+- **SWF v17 (Flash Player 11.4).** O runtime de `deps/` é o AIR 22.0.0.153, que
   recusa SWF de versão mais nova. O `build.ps1` fixa `-swf-version=17`; não
-  aumentar sem testar no `LeTanki.exe` de verdade.
+  aumentar sem testar no cliente de verdade.
 - **`+configname=air` é obrigatório.** O loader usa `NativeApplication` e
   `Screen`, que só existem no perfil AIR.
-- **A assinatura já está inválida, e não faz diferença.** Nenhum dos digests de
-  `META-INF/signatures.xml` bate com os arquivos do pacote — nem o
-  `application.xml`, nem os ícones, nem o SWF —, e o `mimetype` que o `.air`
-  original tinha nem existe mais aqui. O instalador foi remontado depois de
-  assinado e roda assim mesmo, então substituir o SWF não quebra a execução.
-  A assinatura fica versionada como registro do pacote original.
-- **O logo não sai byte a byte.** No SWF original ele é `DefineBitsLossless2`
-  (bitmap ARGB pré-multiplicado); o ffdec desfaz a pré-multiplicação ao extrair
-  e o compilador refaz ao embutir. Medido: 8329 de 90000 pixels mudam, nenhum
-  deles opaco, erro só em borda antisserrilhada. Se um dia precisar de
-  fidelidade exata, substituir a tag no SWF em vez de recompilar.
-- **Recompilar dá bytecode equivalente, não idêntico.** Contra o build de
-  referência, a única diferença é o `dc:date` do metadata XMP.
+- **A assinatura é auto assinada e não vale nada.** A original era da
+  Alternativa Game Ltd e não há como reproduzir sem a chave privada dela. O AIR
+  não valida isso ao subir: testado, o cliente abre normal com o
+  `signatures.xml` gerado aqui, de 3,7 KB contra os 71 KB do original. O
+  `META-INF/AIR/hash` é derivado do certificado; com o descritor no namespace
+  4.0 ele não entra no caminho da pasta de dados, que é só `%APPDATA%\LeTanki`.
+- **O certificado fica fixo em `adt-cert.p12`.** Não porque valha alguma coisa,
+  mas porque um certificado novo a cada rodada mudaria o `hash` e o
+  `signatures.xml` toda vez. Apagar o arquivo só gera outra identidade.
+- **O exe muda a cada build.** O `adt` distribui os IDs dos ícones no `.rsrc` em
+  ordem arbitrária, então duas rodadas seguidas dão exes diferentes mesmo sem
+  nenhuma entrada ter mudado.
+- **Uma instância por vez.** Se já houver um LeTanki aberto, mesmo de outra
+  pasta, o processo novo sai na hora com código 0 e sem abrir janela: o AIR
+  admite uma instância por `<id>` do descritor.
+- **O SWF recompilado não é o original.** Contra outro build nosso a única
+  diferença é o `dc:date` do metadata XMP, mas contra o binário que vinha no
+  instalador são 56.547 bytes em vez de 62.384. E o logo não sai byte a byte:
+  no original ele é `DefineBitsLossless2` (bitmap ARGB pré-multiplicado), o
+  ffdec desfaz a pré-multiplicação ao extrair e o compilador refaz ao embutir.
+  Medido: 8329 de 90000 pixels mudam, nenhum deles opaco, erro só em borda
+  antisserrilhada.
+- **O payload original está no histórico.** A pasta `app/`, byte a byte do
+  instalador, foi removida em favor de gerar tudo. Continua recuperável:
+  `git show fefadaa:app/LeTanki.exe`, `git show fefadaa:app/META-INF/signatures.xml`.
 
 ## Fora do repositório
 
 - `unins000.exe` / `unins000.dat` — o desinstalador do Inno Setup, gerado na
   máquina de quem instala. Não é payload.
+- `adt-cert.p12` — certificado auto assinado, gerado na primeira execução do
+  `package.ps1`.
 - `tools/flex-sdk` — SDK de terceiros, ~30 MB.
 - `build/` — saída de compilação.

@@ -3,7 +3,7 @@
 *.png binary
 *.swf binary
 
-# O payload do instalador fica byte a byte como esta: nada de normalizacao de
-# fim de linha, nem no "LGPL License.txt" do WebKit. Esta regra vem por ultimo
-# de proposito -- no gitattributes quem casa por ultimo e quem vale.
-app/** -text
+# O runtime do AIR fica byte a byte como veio: nada de normalizacao de fim de
+# linha, nem no "LGPL License.txt" do WebKit. Esta regra vem por ultimo de
+# proposito -- no gitattributes quem casa por ultimo e quem vale.
+deps/** -text

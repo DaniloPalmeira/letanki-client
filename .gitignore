@@ -1,6 +1,10 @@
 # Saida de compilacao
 /build/
 
+# Certificado auto assinado do adt: descartavel, mas fixo para o META-INF nao
+# mudar a cada build. Apagar so troca a identidade -- ela nao vale nada mesmo.
+/adt-cert.p12
+
 # SDK do Flex: ~30 MB de terceiros, resolvido por $env:FLEX_SDK ou junction
 /tools/
 

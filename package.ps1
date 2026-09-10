@@ -1,22 +1,26 @@
-# Gera build\LeTanki.exe com o adt do AIR SDK 32.
+# Monta build\LeTanki\ -- o cliente completo e rodavel.
 #
-#   powershell -File package.ps1            # so gera, em build\
-#   powershell -File package.ps1 -Install   # gera e troca o exe do payload
+#   powershell -File package.ps1
 #
-# O launcher do AIR nao tem codigo nosso: e o CaptiveAppEntry.exe do SDK com os
-# icones injetados na secao .rsrc. Por isso a "fonte" dele e o descritor mais os
-# icones que ja estao em app\, e nao src\. Conferido secao a secao: .text,
-# .rdata, .data e .reloc do exe gerado sao identicos aos do template do SDK.
+# Entradas:
+#   application.xml   descritor: enderecos do CDN e parametros do loader
+#   icons\            icones do launcher
+#   src\              fonte do SWF; o build.ps1 compila, chamado aqui embaixo
+#   deps\Adobe AIR\   runtime captive AIR 22.0.0.153 -- a unica dependencia
+#                     binaria, e a unica coisa do cliente que nao se gera
 #
-# ATENCAO -- o exe que sai daqui NAO e byte a byte o app\LeTanki.exe versionado.
-# O payload original foi empacotado com AIR 22.0.0.153 e este SDK e o AIR
-# 32.0.0.116; os templates sao binarios diferentes (69.432 vs 82.944 bytes).
-# Testado: o stub do 32 sobe normal sobre o runtime captive 22 de app\Adobe AIR.
-# Ainda assim -Install muda o que vai instalado no PC do usuario -- e decisao,
-# nao detalhe de build. Fora isso, o adt embaralha os IDs dos icones no .rsrc a
-# cada rodada, entao duas execucoes seguidas ja dao arquivos diferentes.
-param([switch]$Install)
-
+# O adt monta o exe, o META-INF e o mimetype. O runtime que ele embarca e o do
+# proprio SDK (AIR 32) e e trocado pelo de deps\, que e a versao com que este
+# cliente sempre rodou -- e a que o -swf-version=17 do build.ps1 respeita.
+#
+# O launcher nao tem codigo nosso: e o CaptiveAppEntry.exe do SDK com os icones
+# injetados na secao .rsrc. Conferido secao a secao, .text, .rdata, .data e
+# .reloc do exe gerado sao identicos aos do template do SDK. Ele tambem nao sai
+# igual entre rodadas: o adt distribui os IDs dos icones em ordem arbitraria.
+#
+# O certificado e auto assinado e nao vale nada -- o original era da Alternativa
+# Game Ltd e nao ha como reproduzir sem a chave privada dela. Fica fixo em
+# adt-cert.p12 (fora do git) so para o META-INF nao mudar a cada rodada.
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 
@@ -29,40 +33,33 @@ try {
         throw "SDK do Flex nao encontrado em '$sdk'. Aponte `$env:FLEX_SDK ou crie tools\flex-sdk (ver README)."
     }
 
-    New-Item -ItemType Directory -Force 'build' | Out-Null
-    $bundle = 'build\bundle'
-    $cert = 'build\adt-cert.p12'
-    if (Test-Path $bundle) { Remove-Item -Recurse -Force $bundle }
+    & "$root\build.ps1"
 
-    # O adt exige assinatura mesmo em -target bundle, mas ela so aparece no
-    # META-INF do bundle, que a gente descarta. Certificado auto assinado,
-    # descartavel, refeito a cada rodada -- nao ha nada para guardar aqui.
-    & "$sdk\bin\adt.bat" -certificate -cn LeTanki 2048-RSA $cert letanki
-    if ($LASTEXITCODE -ne 0) { throw "adt -certificate falhou (exit $LASTEXITCODE)" }
+    $cert = 'adt-cert.p12'
+    $dest = 'build\LeTanki'
+
+    # O adt exige assinatura mesmo em -target bundle. Gera o certificado uma vez
+    # e reaproveita: assim o META-INF sai igual em toda rodada.
+    if (-not (Test-Path $cert)) {
+        & "$sdk\bin\adt.bat" -certificate -cn LeTanki 2048-RSA $cert letanki
+        if ($LASTEXITCODE -ne 0) { throw "adt -certificate falhou (exit $LASTEXITCODE)" }
+        Write-Host "certificado novo em $cert"
+    }
+
+    if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
 
     # -tsa none: o timestamp server padrao do adt morreu junto com a Adobe; sem
     # isso ele para em "Could not generate timestamp: Connection reset".
-    # O fileset e so icons + SWF porque o descritor referencia os dois e o adt
-    # recusa empacotar sem eles; do fileset, so os icones entram no exe.
     & "$sdk\bin\adt.bat" -package `
         -storetype pkcs12 -keystore $cert -storepass letanki -tsa none `
-        -target bundle $bundle `
-        'app\META-INF\AIR\application.xml' `
-        -C 'app' 'icons' 'StandaloneLoader-2.0.swf'
+        -target bundle $dest 'application.xml' `
+        -C '.' 'icons' `
+        -C 'build' 'StandaloneLoader-2.0.swf'
     if ($LASTEXITCODE -ne 0) { throw "adt -package falhou (exit $LASTEXITCODE)" }
 
-    Copy-Item "$bundle\LeTanki.exe" 'build\LeTanki.exe' -Force
+    # Fora o runtime, que vem de deps\ e nao do SDK.
+    Remove-Item -Recurse -Force "$dest\Adobe AIR"
+    Copy-Item -Recurse 'deps\Adobe AIR' "$dest\Adobe AIR"
 
-    # O resto do bundle e runtime AIR 32 (27 MB) e um META-INF assinado por nos.
-    # Nada disso vai para app\, entao nao fica para tras se passando por payload.
-    Remove-Item -Recurse -Force $bundle, $cert
-
-    Write-Host "build\LeTanki.exe  ($((Get-Item 'build\LeTanki.exe').Length) bytes)"
-
-    if ($Install) {
-        Copy-Item 'build\LeTanki.exe' 'app\LeTanki.exe' -Force
-        Write-Host 'instalado em app\LeTanki.exe'
-    } else {
-        Write-Host 'use -Install para trocar o exe em app\'
-    }
+    Write-Host "$dest\  -- cliente pronto, rode $dest\LeTanki.exe"
 } finally { Pop-Location }
