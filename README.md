@@ -207,6 +207,17 @@ runtime captive 22, abre a janela e carrega o jogo.
   instalador, foi removida em favor de gerar tudo. Continua recuperável:
   `git show fefadaa:app/LeTanki.exe`, `git show fefadaa:app/META-INF/signatures.xml`.
 
+## Licença
+
+[MIT](LICENSE) — copie, modifique e redistribua à vontade, desde que o aviso de
+copyright e o texto da licença venham junto.
+
+Ela cobre o que é nosso: `src/`, `icons/`, `application.xml`, os scripts e o
+`installer.iss`. **Não** cobre `deps/Adobe AIR/`, que é o runtime captive do
+Adobe AIR, redistribuído sob os termos da Adobe e não sob a MIT. Dentro dele vai
+WebKit sob LGPL, com os avisos em
+`deps/Adobe AIR/Versions/1.0/Resources/WebKit/`.
+
 ## Fora do repositório
 
 - `unins000.exe` / `unins000.dat` — o desinstalador do Inno Setup, gerado na
