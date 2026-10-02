@@ -21,6 +21,15 @@
 # O certificado e auto assinado e nao vale nada -- o original era da Alternativa
 # Game Ltd e nao ha como reproduzir sem a chave privada dela. Fica fixo em
 # adt-cert.p12 (fora do git) so para o META-INF nao mudar a cada rodada.
+#
+#   powershell -File package.ps1 -Xp
+#
+# Monta a variante para Windows XP em build-xp\ e dist\LeTanki-xp.zip. O
+# SChannel do XP nao fala TLS 1.2 nem manda SNI, entao o HTTPS do Cloudflare
+# nunca fecha o handshake: essa variante troca todo https:// do descritor por
+# http://, o que exige o res.letanki.com aceitar HTTP sem redirecionar. Sai em
+# zip porque o Inno Setup 6 nao roda no XP.
+param([switch]$Xp)
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 
@@ -37,6 +46,13 @@ try {
 
     $cert = 'adt-cert.p12'
     $dest = 'build'
+    $descriptor = 'application.xml'
+    if ($Xp) {
+        $dest = 'build-xp'
+        $descriptor = 'obj\application-xp.xml'
+        $xml = [IO.File]::ReadAllText("$root\application.xml") -replace 'https://', 'http://'
+        [IO.File]::WriteAllText("$root\$descriptor", $xml)
+    }
 
     # O adt exige assinatura mesmo em -target bundle. Gera o certificado uma vez
     # e reaproveita: assim o META-INF sai igual em toda rodada.
@@ -48,8 +64,9 @@ try {
 
     # Com o cliente aberto, o Adobe AIR.dll fica travado e o Remove-Item abaixo
     # falha com "acesso negado", que nao diz nada sobre a causa real.
-    if (Get-Process -Name LeTanki -ErrorAction SilentlyContinue) {
-        throw 'LeTanki esta aberto. Feche antes: o build\ nao pode ser trocado com o runtime carregado.'
+    $full = [IO.Path]::GetFullPath("$root\$dest")
+    if (Get-Process -Name LeTanki -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$full\*" }) {
+        throw "LeTanki esta aberto. Feche antes: o build\ nao pode ser trocado com o runtime carregado."
     }
     if (Test-Path $dest) { Remove-Item -Recurse -Force $dest }
 
@@ -57,7 +74,7 @@ try {
     # isso ele para em "Could not generate timestamp: Connection reset".
     & "$sdk\bin\adt.bat" -package `
         -storetype pkcs12 -keystore $cert -storepass letanki -tsa none `
-        -target bundle $dest 'application.xml' `
+        -target bundle $dest $descriptor `
         -C '.' 'icons' `
         -C 'obj' 'StandaloneLoader-2.0.swf'
     if ($LASTEXITCODE -ne 0) { throw "adt -package falhou (exit $LASTEXITCODE)" }
@@ -66,5 +83,10 @@ try {
     Remove-Item -Recurse -Force "$dest\Adobe AIR"
     Copy-Item -Recurse 'deps\Adobe AIR' "$dest\Adobe AIR"
 
+    if ($Xp) {
+        New-Item -ItemType Directory -Force 'dist' | Out-Null
+        Compress-Archive -Force "$dest\*" 'dist\LeTanki-xp.zip'
+        Write-Host 'dist\LeTanki-xp.zip  -- variante XP, descompactar e rodar LeTanki.exe'
+    }
     Write-Host "$dest\  -- cliente pronto, rode $dest\LeTanki.exe"
 } finally { Pop-Location }

@@ -2,6 +2,7 @@
 # montado, dist\ e o instalador.
 /obj/
 /build/
+/build-xp/
 /dist/
 
 # Certificado auto assinado do adt: descartavel, mas fixo para o META-INF nao
