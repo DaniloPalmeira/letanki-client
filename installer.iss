@@ -10,7 +10,7 @@
 ; do adt.
 
 #define AppName "LeTanki"
-#define AppVersion "1.0"
+#define AppVersion "1.1"
 
 [Setup]
 ; AppId nunca muda: e por ele que o Windows reconhece uma instalacao

@@ -83,6 +83,33 @@ try {
     Remove-Item -Recurse -Force "$dest\Adobe AIR"
     Copy-Item -Recurse 'deps\Adobe AIR' "$dest\Adobe AIR"
 
+    # Liga o bit IMAGE_FILE_LARGE_ADDRESS_AWARE no cabecalho PE do exe. O
+    # launcher e de 32 bits e sem o bit o processo tem 2 GB de espaco de
+    # endereco; medido em 2026-10-02 no cliente instalado: uma sessao normal
+    # sobe de 1,6 para 2,0 GB virtuais ao longo de algumas batalhas e, ao bater
+    # no teto, o runtime falha a alocacao, derruba as threads e o cliente
+    # congela ("parou de responder") -- antes disso texturas comecam a falhar
+    # ao subir para a GPU (Error #3691) e somem ou piscam. Com o bit, o Windows
+    # de 64 bits da 4 GB ao processo. Em Windows de 32 bits (e XP) o bit e
+    # ignorado e nada muda. O runtime e o mesmo que o adl.exe com este bit
+    # roda em depuracao desde 2026-09-25 (tools\adl-laa no repositorio do
+    # cliente), sem efeito colateral. O exe nao e assinado, entao mexer no
+    # cabecalho nao invalida nada; quando a assinatura entrar, este passo tem
+    # de vir antes dela.
+    $exe = Join-Path $full 'LeTanki.exe'
+    $bytes = [IO.File]::ReadAllBytes($exe)
+    $pe = [BitConverter]::ToInt32($bytes, 0x3C)
+    if ($bytes[$pe] -ne 0x50 -or $bytes[$pe + 1] -ne 0x45) { throw "LeTanki.exe nao tem cabecalho PE em $pe" }
+    $flags = [BitConverter]::ToUInt16($bytes, $pe + 22)
+    if (($flags -band 0x20) -eq 0) {
+        $flags = [uint16]($flags -bor 0x20)
+        [Array]::Copy([BitConverter]::GetBytes($flags), 0, $bytes, $pe + 22, 2)
+        [IO.File]::WriteAllBytes($exe, $bytes)
+    }
+    $check = [BitConverter]::ToUInt16([IO.File]::ReadAllBytes($exe), $pe + 22)
+    if (($check -band 0x20) -eq 0) { throw 'nao consegui ligar o bit LAA em LeTanki.exe' }
+    Write-Host ('LeTanki.exe: LARGE_ADDRESS_AWARE ligado (Characteristics 0x{0:x})' -f $check)
+
     if ($Xp) {
         New-Item -ItemType Directory -Force 'dist' | Out-Null
         Compress-Archive -Force "$dest\*" 'dist\LeTanki-xp.zip'
